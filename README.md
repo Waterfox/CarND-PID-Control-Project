@@ -1,84 +1,52 @@
 # CarND-Controls-PID
-Self-Driving Car Engineer Nanodegree Program
+Robbie Edwards
 
 ---
 
-## Dependencies
 
-* cmake >= 3.5
- * All OSes: [click here for installation instructions](https://cmake.org/install/)
-* make >= 4.1
-  * Linux: make is installed by default on most Linux distros
-  * Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
-  * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
-* gcc/g++ >= 5.4
-  * Linux: gcc / g++ is installed by default on most Linux distros
-  * Mac: same deal as make - [install Xcode command line tools]((https://developer.apple.com/xcode/features/)
-  * Windows: recommend using [MinGW](http://www.mingw.org/)
-* [uWebSockets](https://github.com/uWebSockets/uWebSockets) == 0.13, but the master branch will probably work just fine
-  * Follow the instructions in the [uWebSockets README](https://github.com/uWebSockets/uWebSockets/blob/master/README.md) to get setup for your platform. You can download the zip of the appropriate version from the [releases page](https://github.com/uWebSockets/uWebSockets/releases). Here's a link to the [v0.13 zip](https://github.com/uWebSockets/uWebSockets/archive/v0.13.0.zip).
-  * If you run OSX and have homebrew installed you can just run the ./install-mac.sh script to install this
-* Simulator. You can download these from the [project intro page](https://github.com/udacity/CarND-PID-Control-Project/releases) in the classroom.
+## Build Instructions
 
-## Basic Build Instructions
+1. Compile: `cmake .. && make`
+2. Run it: `./pid`.
 
-1. Clone this repo.
-2. Make a build directory: `mkdir build && cd build`
-3. Compile: `cmake .. && make`
-4. Run it: `./pid`. 
 
-## Editor Settings
+## Introduction
 
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
+This assignment presented the challenge of controlling a simulated car around a course by implementing a PID controller to output the vehicle's steering angle. Cross-track error of the vehicle's position was reported by the simulator and used as the input to the controller. Position error was measured and used to control the steering rate. A PID controller was also implemented to control the vehicle's speed. The setpoint of the speed controller was decreased when the PID controller requested large steering angles.  This assignment is submitted with a 40mph speed setpoint. The vehicle does not leave the track, but it may occasionaly touch a lane marker on sharper conrners.
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
+This assignment presented the interesting challenge that the required setpoint was continuously changing as the car drove around varying curvature on the track. The output was the combined effect was the response of the controller, with the changing setpoints for turn rate.
 
-## Code Style
+## Parameters
 
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
+ - Kp: Increasing Kp would lead to oscillations around the setpoint as described in the lectures. Using too low a Kp would result in a system that responds slowly and would not always be capable of following the tighter curves.
+ - Ki: Using an integral term appeared to allow the vehile to drive smoothly around high radius turns. It was likely not necessary to complete a lap, but allowed the controller to lock on to a turn rate and prevent oscillations resulting from just P and D on long turns. Allowing the i_error to accumulate too high would result in the vehicle not being able to acheive turns in the opposite direction as the output of Ki*i_error was slow to respond. Ki was set large enough to respond resonably quickly to changes in the direction of curvature but constrained to a maximum output.
+ - Kd: The derivative term was found to provide damping as expected. If the term was set too high, the car would take sharp corrections leading to instability when it turned around sharp corners and the rate of increase of CTE became large. Once a suitable Kd was found, it was lowered as much as possible to avoid jittering.
 
-## Project Instructions and Rubric
 
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
+## Parameter selection
 
-More information is only accessible by people who are already enrolled in Term 2
-of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/f1820894-8322-4bb3-81aa-b26b3c6dcbaf/lessons/e8235395-22dd-4b87-88e0-d108c5e5bbf4/concepts/6a4d8d42-6a04-4aa6-b284-1697c0fd6562)
-for instructions and the project rubric.
+Manual tuning was used for this project. Although machine based optimization of the PID parameters is interesting, I have not spend much time manually tuning PID controllers and thought this would be good practice. I've tuned a few flight controllers on RC aircraft but rarely get the chance to directly witness the effects of changing each of the parameters in detail.
 
-## Hints!
+For tuning:
 
-* You don't have to follow this directory structure, but if you do, your work
-  will span all of the .cpp files here. Keep an eye out for TODOs.
+1. Tuning was started with very low Kd and Ki=0 terms
+2. Kp was increased until oscillations were observed as the setpoint was changed. The setpoint changed frequently as the car drove around a track of various curvatures.
+3. Kd was increased and damping of the oscillations was observed. At a certain point, the car would drive erratically around tight corners as d(CTE)/dt became large. Kd was decreased until normal behavior was recovered.
+4. Ki was introduced. It was found that if the I term was allowed to get too large, the car may not drive around tight corners in the opposite direction in which error was accumulating. A maximum on the i_error was implemented to avoid this problem. The max i_error was set low enough to avoid effects on steering in the opposite direction. The K_i term was set high enough that error would accumulate or decrease quickly enough to respond to changes in curvature.
+5. These parameters were manually adjusted from here to confirm the effects and sensitivity of adjusting each parameter.
+6. It was found that a given tuning was only valid for a certain speed range. The settings supplied appear to work between 35 and 45mph.
 
-## Call for IDE Profiles Pull Requests
+## Plots
 
-Help your fellow students!
+The following plots show the input CTE error and the output steering angle data. The CTE is a good measure of performance of the controller. in this case oscillations are present and CTE grows large around some areas, likely corners. The output steering angle contains small oscillations with some large adjustments in some areas.
 
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to we ensure
-that students don't feel pressured to use one IDE or another.
+![alt text](cte_plot.png "Cross Track Error Plot")
+![alt text](steer_plot.png "Steering Angle Output Plot")
 
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
+## Considerations and improvements
 
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
+For implementing a Twiddle or Gradient descent approach for parameter selection, one would need to evaluate a measure of the accumulated cross-track error or average cross-track error. Ideally this should be done over the whole course to ensure the controller is tuned for all curves and won't fail in sections of the course. This would require an automatic means of evaluating when the car completes a lap or gets into an unrecoverable situation. Writing this interface to the simluator is probably beyond the scope of learning PID control. It could also work with painful human intervention. 1 lap evaluations would also require considerably long times for an optimizer to explore the parameter space, especially given the potential non-linearity of the response to PID parameters.
 
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
+A paramter tuner optimizer may likely be implemented more efficiently over short intervals. It would be convenient if the both the set-point did not fluctatute as the car drives around the course and if the setpoint and error were reported.
 
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
+There is likely an error in the calculation of delta time. The dt was measured at approximately 0.001s according to the ctime clock() function in a similar way to the Kidnapped Vehicle Project. But only 3000 data points were recorded during one lap, taking longer than 3 seconds.

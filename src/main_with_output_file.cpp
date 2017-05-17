@@ -3,6 +3,9 @@
 #include "json.hpp"
 #include "PID.h"
 #include <math.h>
+#include <fstream>
+#include <sstream>
+#include <stdlib.h>
 
 // for convenience
 using json = nlohmann::json;
@@ -28,9 +31,16 @@ std::string hasData(std::string s) {
   return "";
 }
 
-int main()
+//This program requires a output file name when running, it will not warn you!
+// ./pid output_file.txt
+int main(int argc, char* argv[])
 {
   uWS::Hub h;
+
+  std::string out_file_name_ = argv[1];
+  std::ofstream out_file_(out_file_name_.c_str(), std::ofstream::out);
+  out_file_ << "steering angle" << "\t";
+  out_file_ << "CTE" << "\n";
 
   //PID pid;
   // TODO: Initialize the pid variable.
@@ -59,12 +69,12 @@ int main()
   double i_err_max_th = 2.0;
 
 
-
+  //std::cout << "nacho";
 
   pid.Init(Kp,Ki,Kd,i_err_max);
   pid_th.Init(Kp_th,Ki_th,Kd_th,i_err_max_th);
 
-  h.onMessage([&pid, &pid_th](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&pid, &pid_th, &out_file_](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -108,6 +118,8 @@ int main()
 
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          out_file_ << steer_value << "\t";
+          out_file_ << cte << "\n";
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
@@ -159,4 +171,8 @@ int main()
     return -1;
   }
   h.run();
+  // close files
+  if (out_file_.is_open()) {
+    out_file_.close();
+  }
 }
