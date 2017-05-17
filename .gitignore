@@ -2,5 +2,5 @@
 tags
 build
 .editorconfig
-uWebSockets
-.ipynb_checkpoints
+uWebSockets/
+.ipynb_checkpoints/
